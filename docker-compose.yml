@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  backend:
+    build: .
+    container_name: autoresize_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - ./backend/static:/app/backend/static
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7
+    container_name: autoresize_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+
+  worker:
+    build: .
+    container_name: autoresize_worker
+    restart: always
+    command: celery -A backend.worker_app worker --loglevel=INFO --concurrency=1
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - backend
+
+volumes:
+  redis_data:
